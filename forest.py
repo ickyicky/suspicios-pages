@@ -65,6 +65,7 @@ https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestR
 
 def load_yaml(path):
     import yaml
+
     return yaml.load(path)
 
 
@@ -78,6 +79,7 @@ def load_py(path):
 
 def load_json(path):
     import json
+
     content = None
     with open(path, "r") as f:
         content = f.read()
@@ -96,17 +98,20 @@ if __name__ == "__main__":
     train_features, test_features, train_labels, test_labels = prepare_all()
 
     import re
+
     kwargs_path = input("Specify path to file with stored kwargs: ")
 
     if kwargs_path:
         try:
             loader = loaders[re.findall(r"(\.[\w\d]+)$", kwargs_path)[0]]
         except (KeyError, IndexError):
-            raise Exception(f"Unsuported file format ! Supported file formats: {''.join(loaders.keys())}")
+            raise Exception(
+                f"Unsuported file format ! Supported file formats: {''.join(loaders.keys())}"
+            )
 
         kwargs = loader(kwargs_path)
         if not isinstance(kwargs, (list, tuple)):
-            kwargs = kwargs,
+            kwargs = (kwargs,)
     else:
         print("Running with default kwargs.")
         kwargs = [DEFAULT_KWARGS]
@@ -115,11 +120,7 @@ if __name__ == "__main__":
 
     for k in kwargs:
         rf, accuracy = train(
-            train_features,
-            test_features,
-            train_labels,
-            test_labels,
-            **k
+            train_features, test_features, train_labels, test_labels, **k
         )
 
         if accuracy > best_accuracy:
