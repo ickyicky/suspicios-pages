@@ -98,8 +98,12 @@ if __name__ == "__main__":
     train_features, test_features, train_labels, test_labels = prepare_all()
 
     import re
+    import sys
 
-    kwargs_path = input("Specify path to file with stored kwargs: ")
+    try:
+        kwargs_path = sys.argv[1]
+    except IndexError:
+        kwargs_path = input("Specify path to file with stored kwargs: ")
 
     if kwargs_path:
         try:
