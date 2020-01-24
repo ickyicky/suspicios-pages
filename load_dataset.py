@@ -54,3 +54,35 @@ def full_load():
     data, meta = load_dataset(find_dataset()[0])
     data = normalize(data)
     return prepare(data)
+
+
+def load_yaml(path):
+    import yaml
+
+    return yaml.load(path)
+
+
+def load_py(path):
+    content = None
+    with open(path, "r") as f:
+        content = f.read()
+
+    return eval(content)
+
+
+def load_json(path):
+    import json
+
+    content = None
+    with open(path, "r") as f:
+        content = f.read()
+
+    return json.loads(content)
+
+
+loaders = {
+    ".py": load_py,
+    ".yml": load_yaml,
+    ".yaml": load_yaml,
+    ".json": load_json,
+}
