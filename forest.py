@@ -1,18 +1,16 @@
-from random import randint, random
 from load_dataset import full_load, loaders
 from sklearn import svm
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 
-RANDOM_STATE = 25
-RANDOM_ITERATIONS = 1000
+RANDOM_STATE = None
+RANDOM_ITERATIONS = 100
 TEST_SIZE = 0.25
 PARAMETERS = {
     "criterion": ["gini", "entropy"],
-    "n_estimators": [100 * i + randint(0, 99) for i in range(1, 10)],
-    "max_depth": [None] + [randint(5, 20) for i in range(10)],
-    "min_samples_split": [randint(2, 6) for i in range(3)],
-    "min_samples_leaf": [1] + [random() / 2 for i in range(10)],
+    "n_estimators": [i for i in range(100, 1000)],
+    "max_depth": [None] + [i for i in range(2, 20)],
+    "min_samples_split": [i for i in range(2, 10)],
 }
 
 
