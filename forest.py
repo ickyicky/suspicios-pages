@@ -9,7 +9,7 @@ RANDOM_ITERATIONS = 1000
 TEST_SIZE = 0.25
 PARAMETERS = {
     "criterion": ["gini", "entropy"],
-    "n_estimators": [100 * i for i in range(1, 10)],
+    "n_estimators": [100 * i + randint(0, 99) for i in range(1, 10)],
     "max_depth": [None] + [randint(5, 20) for i in range(10)],
     "min_samples_split": [randint(2, 6) for i in range(3)],
     "min_samples_leaf": [1] + [random() / 2 for i in range(10)],

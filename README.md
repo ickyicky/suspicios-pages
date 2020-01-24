@@ -9,4 +9,4 @@ python forest.py
 
 Custom kwargs for training rf are just simple scikit parameters,
 listed under parameters section there:
-https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
+https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
