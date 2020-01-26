@@ -1,6 +1,9 @@
 # Basically, highest score there
+{'n_estimators': 274, 'min_samples_split': 3, 'max_depth': None, 'criterion': 'entropy'}
+#RF accuracy after search: 0.981549815498155
+#
 # 97,64... OMG!
-{'n_estimators': 403, 'min_samples_split': 4, 'max_depth': 14, 'criterion': 'gini'}
+#{"n_estimators": 403, "min_samples_split": 4, "max_depth": 14, "criterion": "gini"}
 # 96,46!!!!!!!!!!!!
 # {'n_estimators': 709, 'min_samples_split': 6, 'max_depth': 12, 'criterion': 'gini'}
 # OVER 95,57!

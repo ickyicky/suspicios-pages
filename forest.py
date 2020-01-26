@@ -4,96 +4,128 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 
 RANDOM_STATE = None
-RANDOM_ITERATIONS = 100
-TEST_SIZE = 0.25
+RF_ITERATIONS = 100
+SVM_ITERATIONS = 24
+TEST_SIZE = 0.2
 PARAMETERS = {
     "criterion": ["gini", "entropy"],
     "n_estimators": [i for i in range(100, 1000)],
     "max_depth": [None] + [i for i in range(2, 20)],
     "min_samples_split": [i for i in range(2, 10)],
 }
+SVM_PARAMETERS = {
+    "kernel": ["linear", "poly", "rbf", "sigmoid"],
+    "degree": [i for i in range(6)],
+}
 
 
-def create_svm_reference(train_features, test_features, train_labels, test_labels):
-    """
-    Basic SVM
-    """
-    clf = svm.SVC(kernel="linear")
-    clf.fit(train_features, train_labels)
-    return clf, clf.score(test_features, test_labels)
+class Classifier:
+    def __init__(self, type_="forest", params={}, **kwargs):
+        """
+        Creates classifier of specified type.
+        """
+        full_params = {
+            "forest": {"random_state": RANDOM_STATE, "n_jobs": -1, "criterion": "gini", "n_estimators": 100},
+            "svm": {"kernel": "linear", "decision_function_shape": "ovr"},
+        }[type_]
+        full_params.update(**params, **kwargs)
 
+        self._classifier = {"forest": RandomForestClassifier, "svm": svm.SVC}[type_](
+            **full_params
+        )
 
-def train(features, labels, parameters=PARAMETERS, iterations=RANDOM_ITERATIONS):
-    """
-    Create RandomForest, then find best parameters with RandomizedSearch,
-    what is great, we don't have to split our data, because RandomizedSearch
-    has implemented cross-validation feature. Basically, default value (5-fold)
-    makes sure, that we run 5 iterations of fitting algorithm, each one with other
-    train and test values, and score function is run on test data. So, test size
-    each time is equal to 20% of all data size. Also, cross_validate uses random state,
-    by default 100, wchich is awfully enough for us.
-    """
-    rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
-    gs = RandomizedSearchCV(
-        rf, parameters, n_jobs=-1, n_iter=iterations, random_state=RANDOM_STATE
-    )
-    search = gs.fit(features, labels)
+        self._best_params = full_params
 
-    # manual test, just to validate our results
-    train_features, test_features, train_labels, test_labels = train_test_split(
-        features, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
-    )
-    # score, basically calls predict and then validates result
-    accuracy = search.score(test_features, test_labels)
+    def search(self, iterations, parameters, features, labels, apply_best=True):
+        """
+        Create RandomForest, then find best parameters with RandomizedSearch,
+        what is great, we don't have to split our data, because RandomizedSearch
+        has implemented cross-validation feature. Basically, default value (5-fold)
+        makes sure, that we run 5 iterations of fitting algorithm, each one with other
+        train and test values, and score function is run on test data. So, test size
+        each time is equal to 20% of all data size. Also, cross_validate uses random state,
+        by default 100, wchich is awfully enough for us.
+        """
+        self._gs = RandomizedSearchCV(
+            self._classifier,
+            parameters,
+            n_jobs=-1,
+            n_iter=iterations,
+            random_state=RANDOM_STATE,
+        )
+        self._search = self._gs.fit(features, labels)
+        self._best_params = self._search.best_params_
+        if apply_best:
+            self._classifier = self._search
 
-    print("Best params:", search.best_params_)
-    print("Accuracy:", accuracy)
+    def __getattr__(self, attrname):
+        """
+        Just to return functions such as fit, score etc
+        """
+        return getattr(self._classifier, attrname)
 
-    ref, ref_score = create_svm_reference(
-        train_features, test_features, train_labels, test_labels
-    )
-    print("Reference score:", ref_score)
-    print("Difference:", accuracy - ref_score)
+    @property
+    def best_params(self):
+        return self._best_params
 
-    return search, accuracy
+    @staticmethod
+    def split(features, labels):
+        return train_test_split(
+            features, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
+        )
+
+    def report(self, param_name, num_results=15):
+        from matplotlib import pyplot as plt
+        from IPython.display import display
+        import pandas as pd
+
+        clf = self._search.best_estimator_
+        clf_params = self._search.best_params_
+        clf_score = self._search.best_score_
+        clf_stdev = self._search.cv_results_["std_test_score"][self._search.best_index_]
+        cv_results = self._search.cv_results_
+
+        print("best parameters: {}".format(clf_params))
+        print("best score:      {:0.5f} (+/-{:0.5f})".format(clf_score, clf_stdev))
+
+        import pprint
+
+        pprint.pprint(clf.get_params())
+
+        # pick out the best results
+        scores_df = pd.DataFrame(cv_results).sort_values(by="rank_test_score")
+
+        best_row = scores_df.iloc[0, :]
+        best_mean = best_row["mean_test_score"]
+        best_stdev = best_row["std_test_score"]
+        best_param = best_row["param_" + param_name]
+
+        # display the top 'num_results' results
+        display(
+            pd.DataFrame(cv_results).sort_values(by="rank_test_score").head(num_results)
+        )
+
+        # plot the results
+        scores_df = scores_df.sort_values(by="param_" + param_name)
+
+        means = scores_df["mean_test_score"]
+        stds = scores_df["std_test_score"]
+        params = scores_df["param_" + param_name]
+
+        plt.figure(figsize=(8, 8))
+        plt.errorbar(params, means, yerr=stds)
+
+        plt.axhline(y=best_mean + best_stdev, color="red")
+        plt.axhline(y=best_mean - best_stdev, color="red")
+        plt.plot(best_param, best_mean, "or")
+
+        plt.title(param_name + " vs Score\nBest Score {:0.5f}".format(clf_score))
+        plt.xlabel(param_name)
+        plt.ylabel("Score")
+        plt.show()
 
 
 """
 Avalibe parameters for training are from parameters section there:
 https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
 """
-
-if __name__ == "__main__":
-    features, feature_list, labels = full_load()
-
-    import re
-    import sys
-
-    try:
-        params_path = sys.argv[1]
-    except IndexError:
-        params_path = input("Specify path to file with stored parameters values: ")
-
-    if params_path:
-        try:
-            loader = loaders[re.findall(r"(\.[\w\d]+)$", params_path)[0]]
-        except (KeyError, IndexError):
-            raise Exception(
-                f"Unsuported file format ! Supported file formats: {''.join(loaders.keys())}"
-            )
-
-        parameters = loader(params_path)
-    else:
-        print("Running with default params.")
-        parameters = PARAMETERS
-
-    try:
-        iterations = int(sys.argv[2])
-    except (IndexError, ValueError):
-        try:
-            iterations = int(input("Specify iterations number: "))
-        except ValueError:
-            print("Running with default iteration number.")
-            iterations = RANDOM_ITERATIONS
-
-    rf, accuracy = train(features, labels, parameters, iterations)
