@@ -25,7 +25,12 @@ class Classifier:
         Creates classifier of specified type.
         """
         full_params = {
-            "forest": {"random_state": RANDOM_STATE, "n_jobs": -1, "criterion": "gini", "n_estimators": 100},
+            "forest": {
+                "random_state": RANDOM_STATE,
+                "n_jobs": -1,
+                "criterion": "gini",
+                "n_estimators": 100,
+            },
             "svm": {"kernel": "linear", "decision_function_shape": "ovr"},
         }[type_]
         full_params.update(**params, **kwargs)
@@ -67,6 +72,10 @@ class Classifier:
     @property
     def best_params(self):
         return self._best_params
+
+    @property
+    def best_score(self):
+        return self._search.best_score_
 
     @staticmethod
     def split(features, labels):

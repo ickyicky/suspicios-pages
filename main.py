@@ -1,6 +1,15 @@
-from forest import full_load, RF_ITERATIONS, SVM_ITERATIONS, PARAMETERS, SVM_PARAMETERS, loaders, Classifier
+from forest import (
+    full_load,
+    RF_ITERATIONS,
+    SVM_ITERATIONS,
+    PARAMETERS,
+    SVM_PARAMETERS,
+    loaders,
+    Classifier,
+)
 import argparse
 import re
+import numpy as np
 
 features, feature_list, labels = full_load()
 
@@ -8,8 +17,9 @@ parser = argparse.ArgumentParser(
     description="Random Forest (RF) searching for suspicious pages",
     prog="python main.py",
 )
+parser.add_argument("--params", help="Specify file with RF parameters", metavar="FILE")
 parser.add_argument(
-    "--params", help="Specify file with RF parameters", metavar="FILE"
+    "--predict", help="Predict on given data", action="store",
 )
 parser.add_argument(
     "--iterations",
@@ -31,9 +41,7 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "--dont-search",
-    help="RF shouldn't be adjusted automatically",
-    action="store_true",
+    "--dont-search", help="RF shouldn't be adjusted automatically", action="store_true",
 )
 parser.add_argument(
     "--console", help="Run very primitive console afterwards", action="store_true"
@@ -79,7 +87,7 @@ print("RF accuracy:", forest_score)
 if not args.dont_search:
     forest.search(args.iterations, PARAMETERS, features, labels)
     print("RF best params:", forest.best_params)
-    forest_score = forest.score(test_features, test_labels)
+    forest_score = forest.best_score
     print("RF accuracy after search:", forest_score)
 
 svc = Classifier("svm")
@@ -90,16 +98,21 @@ print("SVM accuracy:", svm_score)
 if not args.svm_dont_search:
     svc.search(args.svm_iterations, SVM_PARAMETERS, features, labels)
     print("SVM best params:", svc.best_params)
-    svm_score = svc.score(test_features, test_labels)
+    svm_score = svc.best_score
     print("SVM accuracy after adjusting:", svm_score)
 
 print("Gain:", forest_score - svm_score)
 
-if args.report:
+if args.predict:
+    array = np.array(args.predict.split(","), dtype="int32").reshape(1, -1)
+    print("RF prediction:", forest.predict(array)[0])
+    print("SVM prediction:", svc.predict(array)[0])
+
+if args.report and not args.dont_search:
     for p in args.report:
         forest.report(p)
 
-if args.report_svm:
+if args.report_svm and not args.dont_search_svm:
     for p in args.report_svm:
         svc.report(p)
 
